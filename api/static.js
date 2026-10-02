@@ -2,6 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
+let CHUNK_MAP = {};
+try {
+  const mapPath = path.join(process.cwd(), 'chunk_id_map.json');
+  if (fs.existsSync(mapPath)) {
+    CHUNK_MAP = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
+  }
+} catch (e) {}
+
 const MIME_TYPES = {
   '.js': 'application/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -71,12 +79,22 @@ module.exports = (req, res) => {
   const cleanPath = reqPath.split('?')[0];
   if (cleanPath.endsWith('.js')) {
     const filename = path.basename(cleanPath);
-    const chunkId = filename.replace(/\.js$/, '').split('.')[0];
+    const baseName = filename.replace(/\.js$/, '');
+    const prefix = baseName.split('.')[0];
+    const chunkId = CHUNK_MAP[prefix] || CHUNK_MAP[baseName] || prefix;
+
+    const ids = Array.from(new Set([
+      chunkId,
+      isNaN(Number(chunkId)) ? chunkId : Number(chunkId),
+      prefix,
+      baseName
+    ])).filter(Boolean);
+
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.end(`(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([["${chunkId}"],{}]);`);
+    res.end(`(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([${JSON.stringify(ids)},{}]);`);
     return;
   }
 
