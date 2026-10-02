@@ -1,0 +1,16 @@
+{
+  "name": "Atelier",
+  "short_name": "Atelier",
+  "description": "Atelier is a free online open-source UI and kinetic motion component library.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "../images/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

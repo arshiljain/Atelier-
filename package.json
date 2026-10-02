@@ -1,0 +1,20 @@
+{
+  "name": "atelier",
+  "version": "2.0.0",
+  "description": "Atelier - Free & Open Source UI and Kinetic Motion Component Library",
+  "main": "serve.js",
+  "scripts": {
+    "start": "node serve.js",
+    "dev": "node serve.js"
+  },
+  "keywords": [
+    "atelier",
+    "ui-components",
+    "kinetic-motion",
+    "motion-graphics",
+    "design-system",
+    "open-source"
+  ],
+  "author": "Atelier Community",
+  "license": "MIT"
+}
