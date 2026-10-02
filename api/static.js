@@ -22,13 +22,13 @@ function findFile(reqPath) {
   const baseName = filename.replace(ext, '');
 
   let searchDirs = [];
-  if (ext === '.js') searchDirs = ['js'];
-  else if (ext === '.css') searchDirs = ['css'];
-  else if (['.woff2', '.woff', '.otf', '.ttf'].includes(ext)) searchDirs = ['fonts'];
+  if (ext === '.js') searchDirs = ['js', '_next/static/chunks', '_next/static/chunks/pages'];
+  else if (ext === '.css') searchDirs = ['css', '_next/static/css'];
+  else if (['.woff2', '.woff', '.otf', '.ttf'].includes(ext)) searchDirs = ['fonts', '_next/static/media'];
   else searchDirs = ['images', 'marketing-assets'];
 
   for (const dirName of searchDirs) {
-    const dir = path.join(process.cwd(), dirName);
+    const dir = path.join(process.cwd(), dirName.replace(/\//g, path.sep));
     if (!fs.existsSync(dir)) continue;
 
     // 1. Exact match
@@ -40,7 +40,7 @@ function findFile(reqPath) {
     const matched = files.find(f => {
       if (f.startsWith(baseName) && f.endsWith(ext)) return true;
       const prefix = baseName.split('.')[0];
-      if (prefix.length > 3 && f.startsWith(prefix) && f.endsWith(ext)) return true;
+      if (prefix.length > 2 && f.startsWith(prefix) && f.endsWith(ext)) return true;
       return false;
     });
 
@@ -54,7 +54,8 @@ function findFile(reqPath) {
 
 module.exports = (req, res) => {
   const parsed = url.parse(req.url, true);
-  const found = findFile(parsed.pathname);
+  const reqPath = parsed.query && parsed.query.path ? parsed.query.path : parsed.pathname;
+  const found = findFile(reqPath);
 
   if (found && fs.existsSync(found.file)) {
     const contentType = MIME_TYPES[found.ext] || 'application/octet-stream';
@@ -66,6 +67,19 @@ module.exports = (req, res) => {
     return;
   }
 
+  // Graceful fallback for missing Next.js script chunks
+  const cleanPath = reqPath.split('?')[0];
+  if (cleanPath.endsWith('.js')) {
+    const filename = path.basename(cleanPath);
+    const chunkId = filename.replace(/\.js$/, '').split('.')[0];
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(`(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([["${chunkId}"],{}]);`);
+    return;
+  }
+
   res.statusCode = 404;
-  res.end('Static asset not found: ' + parsed.pathname);
+  res.end('Static asset not found: ' + reqPath);
 };

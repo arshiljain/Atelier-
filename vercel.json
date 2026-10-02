@@ -9,6 +9,10 @@
     },
     {
       "source": "/_next/static/:path*",
+      "destination": "/api/static?path=:path*"
+    },
+    {
+      "source": "/_vercel/:path*",
       "destination": "/api/static"
     },
     {
