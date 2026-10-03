@@ -24,8 +24,56 @@
       "destination": "/api/[...path]"
     },
     {
-      "source": "/blocks/:slug",
+      "source": "/blocks/:slug*",
       "destination": "/blocks.html"
+    },
+    {
+      "source": "/templates/:slug*",
+      "destination": "/templates.html"
+    },
+    {
+      "source": "/@:handle",
+      "destination": "/_:handle.html"
+    },
+    {
+      "source": "/profile/:handle",
+      "destination": "/_:handle.html"
+    },
+    {
+      "source": "/justified-studio",
+      "destination": "/_justified-studio.html"
+    },
+    {
+      "source": "/ilovecreatives",
+      "destination": "/_ilovecreatives.html"
+    },
+    {
+      "source": "/kiel-d-m",
+      "destination": "/_kiel-d-m.html"
+    },
+    {
+      "source": "/clemensmako",
+      "destination": "/_clemensmako.html"
+    },
+    {
+      "source": "/letsavee",
+      "destination": "/_letsavee.html"
+    },
+    {
+      "source": "/melivan-colas",
+      "destination": "/_melivan-colas.html"
+    },
+    {
+      "source": "/studio-kiln",
+      "destination": "/_studio-kiln.html"
+    },
+    {
+      "source": "/studio-size",
+      "destination": "/_studio-size.html"
+    },
+    {
+      "source": "/thebrandidentity",
+      "destination": "/_thebrandidentity.html"
     }
   ],
   "headers": [
