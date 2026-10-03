@@ -38,30 +38,43 @@ const MIME_TYPES = {
 };
 
 function findImageFile(filename) {
-  const imagesDir = path.join(BASE_DIR, 'images');
-  if (!fs.existsSync(imagesDir)) return null;
+  const clean = filename.replace(/%40/g, '_').replace(/@/g, '_').split('?')[0];
+  const ext = path.parse(clean).ext.toLowerCase();
 
-  const direct = path.join(imagesDir, filename);
-  if (fs.existsSync(direct) && fs.statSync(direct).isFile()) {
-    return direct;
+  const candidateBases = Array.from(new Set([
+    path.parse(filename.split('?')[0]).name,
+    path.parse(clean).name,
+    path.parse(filename.replace(/%40/g, '_40').split('?')[0]).name,
+    path.parse(filename.replace(/%40/g, '_').split('?')[0]).name,
+    path.parse(filename.replace(/@/g, '_40').split('?')[0]).name,
+    path.parse(filename.replace(/@/g, '_').split('?')[0]).name,
+  ])).filter(Boolean);
+
+  const searchDirs = ['images', 'marketing-assets', 'static_assets'];
+
+  for (const d of searchDirs) {
+    const dir = path.join(BASE_DIR, d);
+    if (!fs.existsSync(dir)) continue;
+
+    for (const b of candidateBases) {
+      const direct = path.join(dir, b + ext);
+      if (fs.existsSync(direct) && fs.statSync(direct).isFile()) return direct;
+    }
+
+    const files = fs.readdirSync(dir);
+    const matched = files.find(f => {
+      if (!f.endsWith(ext)) return false;
+      for (const base of candidateBases) {
+        if (f.startsWith(base)) return true;
+        const prefix = base.split('_')[0];
+        if (prefix.length > 4 && f.startsWith(prefix)) return true;
+      }
+      return false;
+    });
+
+    if (matched) return path.join(dir, matched);
   }
 
-  const cleanName = filename.replace(/%40/g, '_').split('?')[0];
-  const baseWithoutExt = path.parse(cleanName).name;
-  const ext = path.parse(cleanName).ext;
-
-  const files = fs.readdirSync(imagesDir);
-  const matched = files.find(f => {
-    if (f === filename || f === cleanName) return true;
-    if (f.startsWith(baseWithoutExt) && f.endsWith(ext)) return true;
-    const prefix = baseWithoutExt.split('_')[0];
-    if (prefix.length > 5 && f.startsWith(prefix) && f.endsWith(ext)) return true;
-    return false;
-  });
-
-  if (matched) {
-    return path.join(imagesDir, matched);
-  }
   return null;
 }
 
@@ -118,6 +131,23 @@ function resolveFilePath(reqUrl) {
     const dirIndex = path.join(filePath, 'index.html');
     if (fs.existsSync(dirIndex)) return dirIndex;
   }
+
+  // Dynamic route rewrites
+  if (reqPath.startsWith('/templates/')) {
+    const templatesHtml = path.join(BASE_DIR, 'templates.html');
+    if (fs.existsSync(templatesHtml)) return templatesHtml;
+  }
+  if (reqPath.startsWith('/blocks/')) {
+    const blocksHtml = path.join(BASE_DIR, 'blocks.html');
+    if (fs.existsSync(blocksHtml)) return blocksHtml;
+  }
+  if (reqPath.startsWith('/@') || reqPath.startsWith('/profile/')) {
+    const handle = reqPath.replace(/^\/(?:@|profile\/)/, '').split('/')[0];
+    const profileHtml = path.join(BASE_DIR, `_${handle}.html`);
+    if (fs.existsSync(profileHtml)) return profileHtml;
+  }
+  const creatorHtml = path.join(BASE_DIR, `_${path.basename(reqPath)}.html`);
+  if (fs.existsSync(creatorHtml)) return creatorHtml;
 
   // Fuzzy image matching
   if (reqPath.startsWith('/images/')) {
