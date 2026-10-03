@@ -15,10 +15,17 @@ const MIME_TYPES = {
 
 function findImageFile(filename) {
   const clean = filename.replace(/%40/g, '_').replace(/@/g, '_').split('?')[0];
-  const base = path.parse(clean).name;
   const ext = path.parse(clean).ext.toLowerCase();
 
-  // Search dirs
+  const candidateBases = Array.from(new Set([
+    path.parse(filename.split('?')[0]).name,
+    path.parse(clean).name,
+    path.parse(filename.replace(/%40/g, '_40').split('?')[0]).name,
+    path.parse(filename.replace(/%40/g, '_').split('?')[0]).name,
+    path.parse(filename.replace(/@/g, '_40').split('?')[0]).name,
+    path.parse(filename.replace(/@/g, '_').split('?')[0]).name,
+  ])).filter(Boolean);
+
   const searchDirs = ['images', 'marketing-assets', 'static_assets'];
 
   for (const d of searchDirs) {
@@ -26,19 +33,20 @@ function findImageFile(filename) {
     if (!fs.existsSync(dir)) continue;
 
     // Direct match
-    const direct = path.join(dir, filename);
-    if (fs.existsSync(direct) && fs.statSync(direct).isFile()) return direct;
+    for (const b of candidateBases) {
+      const direct = path.join(dir, b + ext);
+      if (fs.existsSync(direct) && fs.statSync(direct).isFile()) return direct;
+    }
 
-    const directClean = path.join(dir, clean);
-    if (fs.existsSync(directClean) && fs.statSync(directClean).isFile()) return directClean;
-
-    // Fuzzy scan
+    // Fuzzy match against files in directory
     const files = fs.readdirSync(dir);
     const matched = files.find(f => {
-      if (f === filename || f === clean) return true;
-      if (f.startsWith(base) && f.endsWith(ext)) return true;
-      const prefix = base.split('_')[0];
-      if (prefix.length > 4 && f.startsWith(prefix) && f.endsWith(ext)) return true;
+      if (!f.endsWith(ext)) return false;
+      for (const base of candidateBases) {
+        if (f.startsWith(base)) return true;
+        const prefix = base.split('_')[0];
+        if (prefix.length > 4 && f.startsWith(prefix)) return true;
+      }
       return false;
     });
 
@@ -48,25 +56,28 @@ function findImageFile(filename) {
   // Recursive search in marketing-assets
   const marketingDir = path.join(process.cwd(), 'marketing-assets');
   if (fs.existsSync(marketingDir)) {
-    const subMatch = findInDir(marketingDir, base, ext, clean);
-    if (subMatch) return subMatch;
+    for (const base of candidateBases) {
+      const subMatch = findInDir(marketingDir, base, ext);
+      if (subMatch) return subMatch;
+    }
   }
 
   return null;
 }
 
-function findInDir(dir, base, ext, clean) {
+function findInDir(dir, base, ext) {
   try {
     for (const f of fs.readdirSync(dir)) {
       const p = path.join(dir, f);
       if (fs.statSync(p).isDirectory()) {
-        const found = findInDir(p, base, ext, clean);
+        const found = findInDir(p, base, ext);
         if (found) return found;
       } else {
-        if (f === clean) return p;
-        if (f.startsWith(base) && f.endsWith(ext)) return p;
-        const prefix = base.split('_')[0];
-        if (prefix.length > 4 && f.startsWith(prefix) && f.endsWith(ext)) return p;
+        if (f.endsWith(ext)) {
+          if (f.startsWith(base)) return p;
+          const prefix = base.split('_')[0];
+          if (prefix.length > 4 && f.startsWith(prefix)) return p;
+        }
       }
     }
   } catch (e) {}
