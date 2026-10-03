@@ -8,6 +8,10 @@
       "destination": "/api/image"
     },
     {
+      "source": "/images/:path*",
+      "destination": "/api/image"
+    },
+    {
       "source": "/_next/static/:path*",
       "destination": "/api/static?path=:path*"
     },
